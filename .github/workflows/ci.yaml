@@ -11,6 +11,9 @@ permissions:
   packages: write
 
 env:
+  DATABASE_URL: postgresql://postgres:password@localhost:5432/prodsight
+  AWS_REGION: us-east-1
+  SQS_QUEUE_URL: http://example.invalid/queue
   PYTHONPATH: .
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }} # owner/repo
