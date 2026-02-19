@@ -2,7 +2,7 @@ name: mirror-to-ecr
 
 on:
   workflow_run:
-    workflows: ["ci-worker"]
+    workflows: ["worker-ci"]
     types: [completed]
 
 permissions:
