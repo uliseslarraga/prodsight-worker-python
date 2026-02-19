@@ -1,0 +1,58 @@
+name: mirror-to-ecr
+
+on:
+  workflow_run:
+    workflows: ["ci-worker"]
+    types: [completed]
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          role-session-name: mirror-ghcr-to-ecr
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Login to GHCR
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Compute tags
+        id: tags
+        run: |
+          SHORT_SHA="${GITHUB_SHA::7}"
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            TAG="${GITHUB_REF#refs/tags/}"
+          else
+            TAG="main"
+          fi
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "sha_tag=sha-$SHORT_SHA" >> $GITHUB_OUTPUT
+
+      - name: Mirror image GHCR -> ECR
+        env:
+          # GHCR image for THIS repo (recommended if your image name == repo name)
+          GHCR_IMAGE: ghcr.io/${{ github.repository }}:${{ steps.tags.outputs.sha_tag }}
+          #ECR_IMAGE:  ${{ secrets.ECR_REPO_URL }}:${{ steps.tags.outputs.tag }}
+          ECR_IMAGE_SHA: ${{ secrets.ECR_REPO_URL }}:${{ steps.tags.outputs.sha_tag }}
+        run: |
+          docker pull "$GHCR_IMAGE"
+          docker tag "$GHCR_IMAGE" "$ECR_IMAGE_SHA"
+          docker push "$ECR_IMAGE_SHA"
