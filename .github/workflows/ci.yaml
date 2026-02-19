@@ -41,7 +41,7 @@ jobs:
       - name: Tests (pytest)
         if: ${{ hashFiles('tests/**') != '' }}
         run: |
-          pytest -q
+          PYTHONPATH=. pytest -q
 
   docker:
     needs: test
