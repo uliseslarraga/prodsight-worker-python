@@ -11,9 +11,17 @@ def make_sqs_client():
     cfg = Config(region_name=settings.aws_region)
     return boto3.client("sqs", region_name=settings.aws_region, endpoint_url=settings.sqs_endpoint_url, config=cfg)
 
-def ensure_queue(sqs, queue_name: str):
-    resp = sqs.create_queue(QueueName=queue_name)
-    return resp["QueueUrl"]
+def ensure_queue(settings) -> str:
+    if settings.sqs_queue_url:
+        return settings.sqs_queue_url
+
+    # Fallback: resolve from name (LocalStack or AWS)
+    sqs = boto3.client(
+        "sqs",
+        region_name=settings.aws_region,
+        endpoint_url=settings.sqs_endpoint_url,
+    )
+    return sqs.get_queue_url(QueueName=settings.sqs_queue_name)["QueueUrl"]
 
 def receive_messages(sqs, queue_url: str, max_messages: int, wait_seconds: int):
     return sqs.receive_message(

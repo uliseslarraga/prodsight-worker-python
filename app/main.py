@@ -13,7 +13,7 @@ def main():
     conn = get_conn()
 
     sqs = make_sqs_client()
-    queue_url = ensure_queue(sqs, settings.sqs_queue_name)
+    queue_url = ensure_queue(settings)
 
     logger.info(
         "worker_started",
